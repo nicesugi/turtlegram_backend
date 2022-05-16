@@ -15,7 +15,7 @@ db = client.dbturtle
 
 @app.route("/")
 def hello_world():
-    return jsonify({'message':'success'})
+    return jsonify({'meg':'success'})
     # 랜더탬플렛하면 연결할 수 있음.
 
 
@@ -35,8 +35,23 @@ def sign_up():
     password = data["password"] #출력값 0000
     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
     
+    # while True:
+    if '@' in data["email"]:
+        if data["email"].split('@'):
+            email = data["email"]
+        else:
+            return jsonify({'meg':'이메일을 다시 입력해주세요'})
+    # handleSignin 클릭시, 입력한 이메일란에 @이 포함되면 db 저장, 아니라면 메세지.   
+    for data["email"] in db.user.find_one(email):
+        return jsonify({'msg':'가입이 된 이메일입니다.'})
+        # handleSignin 클릭시, 입력한 이메일이 userDB에 저장되어있다면, 메세지.
+        
+    
+    
     db.user.insert_one({"email":email, "password":password_hash})
-    return jsonify({'message':'success2'})
+    return jsonify({'result':'success'})
+    
+    # return render_template('login.html')
     
 
 
