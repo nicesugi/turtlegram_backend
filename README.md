@@ -1,1 +1,2 @@
-# turtlegram_backend
+5월 16일 회원가입 api post 완료</br>
+5월 15일 기본 세팅; VSC, 포스트맨, 아나콘다 설치 + 패키지 임포트
