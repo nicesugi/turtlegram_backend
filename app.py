@@ -1,19 +1,17 @@
-from collections import UserString
-import datetime
+from datetime import datetime, timedelta
 import hashlib
 import json
-from sre_constants import SUCCESS
-from flask import Flask, jsonify, request
+from bson import ObjectId
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
-from bson.objectid import ObjectId
 import jwt
+from pymongo import MongoClient
 
 SECRET_KEY = 'turtle'
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "*"}})
 
-from pymongo import MongoClient
 client = MongoClient('localhost', 27017)
 db = client.turtle
 
@@ -23,54 +21,81 @@ def hello_world():
     return jsonify({'msg':'success'})   # 랜더탬플렛하면 연결할 수 있으나 jsonify 동시에 사용 안함
 
 
+# # # # # # # # # # # # # 회원가입 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+
 @app.route("/signup", methods=["POST"])
 def sign_up():
     data = json.loads(request.data) 
 
-    email = data.get('email')   # 출력값 sugi  > 값이 없으면 key오류떠서. get추천
-    password = data.get('password') # 출력값 0000
+    email = data.get('email')   # =data['email'] 출력값 sugi  -> 값이 없으면 key오류떠서. get추천
+    password = data.get('password') # 입력값이 없다면 출력값은 none으로 표시됨
     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    print(password_hash)
     
-    result = db.users.find_one({
-        'email' : email,
-        'password' : password
-    })
-    print(result)
+    if not email or not password:
+        print('이메일이나 패스워드 없음')
+        return jsonify({'msg':'정보를 입력해주세요'}), 405
+    if '@' not in email:
+        print('이메일을 다시')
+        return jsonify({'msg':'이메일을 다시 입력해주세요'}), 400
+    if db.user.find_one({"email":email}):
+        print('가입된 메일')
+        return jsonify({'msg':'가입이 된 이메일입니다.'}), 402 
     
+    
+    db.user.insert_one({'email':email, 'password':password_hash})
+    print(email, password_hash)
+    return jsonify({'msg':'가입 성공'})
+
+
+# # # # # # # # # # # # # 로그인 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    # print(request)
+    data = json.loads(request.data)
+    # print(data)
+
+    email = data.get("email")
+    password = data.get("password")
+    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    # print(password_hash)
+    result = db.user.find_one({'email': email, 'password': password_hash})
+    # print(result)
+
     if result is None:
-        return jsonify({"msg":"아이디나 비밀번호가 옳지 않습니다"}), 401
-    
+        return jsonify({'msg': '아이디나 비밀번호가 옳지 않습니다.'}), 401
+
     payload = {
         'id': str(result["_id"]),
-        'exp': datetime.utcnow() + datetime.timedelta(seconds=60 * 60 * 24)
+        'exp': datetime.utcnow() + timedelta(seconds=60 * 60 * 24)  # 로그인 24시간 유지
     }
-    
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-    print(token)
-    
-    return jsonify({"msg":"success", "token":token})
+    # print(token)
+    return jsonify({'msg': 'success', 'token': token}), 200
+
+
+# # # # # # # # # # # # # 메인 페이지 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 토큰값으로 백엔드로 보내고 디비 조회 후 이메일 꺼내서 돌려보내주고 그걸로 프론트엔드 업데이트 
 
 
 @app.route("/getuserinfo", methods=["GET"])
 def get_user_info():
-    # print(request.headers)         # check 2 헤더 찍히는거 확인  후 삭제 / 역할 체크
-    # token = request.headers.get("Authorization")
-    # if not token:
-    #     return jsonify({"msg":"no token"})
+           
+    token = request.headers.get('Authorization')  # check 2헤더와 바디의 차이점 공부하기
+    # print(token)
+    if not token:
+        return jsonify({'msg':'no token'})
     # print(token)
     user = jwt.decode(token, SECRET_KEY, algorithms=['HS256']) # check 3
-    print(user)                                               # check 3 아이디랑 만료날짜 확인
-    result = db.users.find_one({
-        '_id' : ObjectId(user["id"])   # check 4 db저장내역 확인
-    })
+    # print(user)                                               
+    result = db.user.find_one({'_id' : ObjectId(user["id"])})   # check 4 db저장내역 확인
     
     print(result)
     
-    return jsonify({"msg":"success", "email":result["email"]})  #check5  
-    # return jsonify({"msg":"success"}) # check 1 후 삭제
-    
-    
+    return jsonify({'msg':'success', 'email':result['email']})  #check5 -> 포스트맨 보면, token값만 나오다가 email도 같이 확인가능
+    # return jsonify({"msg":"success"}) # check 1
     
     # db.user.insert_one({
     #     "email":email,
