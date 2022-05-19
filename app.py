@@ -151,6 +151,26 @@ def post_article(user):
 
  
  # # # # # # # # # # # # # 게시글 # # # # # # # # # # # # # # # # # # # # #
+ # 게시글을 작성한 아이디 정보(아이디/내용/시간/제목/유저/이메일)를 다 db에 저장해줌
+ # print(articles)  내가 작성했던 글들이 모두 찍힘. 그치만 ObjectId  때문에 오류가 날 수 있고, 방지하기 위해 str 해주기.
+ # 덤프를 사용할 수 있지만 for문 사용하여 str으로 바꿔줄 거임.
+ # print(article.get("title"))  for문 잘 돌아가는지, 타이틀만 뽑아서 확인해봄
+ # return jsonify({'msg':'success', 'article':article}) 성공적으로 ObjectId 값이 String으로 바껴서 들어옴 ->db 확인가능
+ 
+@app.route("/article", methods=["GET"])
+def get_article():
+    articles = list(db.article.find())  
+    # print(articles) 
+    for article in articles:
+        # print(article.get("title")) 
+        article["_id"] = str(article["_id"])
+    return jsonify({'msg':'success', 'article':article})
+    
+    
+    
+    # return jsonify({'message': 'success'})
+
+ 
  
  
 if __name__ == '__main__':
