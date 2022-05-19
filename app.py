@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from functools import wraps
 import hashlib
 import json
 from bson import ObjectId
-from flask import Flask, jsonify, request, Response
+from flask import Flask, abort, jsonify, request, Response
 from flask_cors import CORS
 import jwt
 from pymongo import MongoClient
@@ -15,9 +16,27 @@ cors = CORS(app, resources={r"*": {"origins": "*"}})
 client = MongoClient('localhost', 27017)
 db = client.turtle
 
+# # # # # # # # # # # # # 회원가입 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+def authorize(f):
+    @wraps(f)
+    def decorated_function():
+        if not 'Authorization' in request.headers:
+            abort(401)
+        token = request.headers['Authorization']
+        try:
+            user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        except:
+            abort(401)
+        return f(user)
+    return decorated_function
+# decorated_function 붙이면 모든 함수에서 유저를 가져오면 그대로 유저값을 이용할 수 있게 됨.
+
 
 @app.route("/")
-def hello_world():
+@authorize   
+def hello_world(user):
+    print(user)
     return jsonify({'msg':'success'})   # 랜더탬플렛하면 연결할 수 있으나 jsonify 동시에 사용 안함
 
 
@@ -33,18 +52,18 @@ def sign_up():
     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
     
     if not email or not password:
-        print('이메일이나 패스워드 없음')
+        # print('이메일이나 패스워드 없음')
         return jsonify({'msg':'정보를 입력해주세요'}), 405
     if '@' not in email:
-        print('이메일을 다시')
+        # print('이메일을 다시')
         return jsonify({'msg':'이메일을 다시 입력해주세요'}), 400
     if db.user.find_one({"email":email}):
-        print('가입된 메일')
+        # print('가입된 메일')
         return jsonify({'msg':'가입이 된 이메일입니다.'}), 402 
     
     
     db.user.insert_one({'email':email, 'password':password_hash})
-    print(email, password_hash)
+    # print(email, password_hash)
     return jsonify({'msg':'가입 성공'})
 
 
@@ -81,20 +100,21 @@ def login():
 
 
 @app.route("/getuserinfo", methods=["GET"])
-def get_user_info():
-           
-    token = request.headers.get('Authorization')  # check 2헤더와 바디의 차이점 공부하기
-    # print(token)
-    if not token:
-        return jsonify({'msg':'no token'})
-    # print(token)
-    user = jwt.decode(token, SECRET_KEY, algorithms=['HS256']) # check 3
-    # print(user)                                               
-    result = db.user.find_one({'_id' : ObjectId(user["id"])})   # check 4 db저장내역 확인
+@authorize 
+def get_user_info(user):
+    # def()에 user써서  user = user 의 내용으로  다음 바로 result해서 간단히 만들 수 도 있음 ! result전까지 주석
+    # token = request.headers.get('Authorization')   
+    # # print(token)
+    # if not token:
+    #     return jsonify({'msg':'no token'})
+    # # print(token)
+    # user = jwt.decode(token, SECRET_KEY, algorithms=['HS256']) # check 3
+    # # print(user)                                               
+    result = db.user.find_one({'_id' : ObjectId(user["id"])})   
     
     print(result)
     
-    return jsonify({'msg':'success', 'email':result['email']})  #check5 -> 포스트맨 보면, token값만 나오다가 email도 같이 확인가능
+    return jsonify({'msg':'success', 'email':result['email']})  
     # return jsonify({"msg":"success"}) # check 1
     
     # db.user.insert_one({
@@ -103,9 +123,38 @@ def get_user_info():
     #     })
     # return jsonify({'msg':'가입 완료'})              # db저장
 
+
+# # # # # # # # # # # # # 게시글 # # # # # # # # # # # # # # # # # # # # #
+
+
+@app.route("/article", methods=["POST"])
+@authorize 
+def post_article(user):
+    data = json.loads(request.data)
+    # print(data) # 출력값 {'title': 'title', 'content': 'content'}
+    db.user = db.user.find_one({'_id':ObjectId(user.get('id'))})
+    
+    now = datetime.now().strftime("%H:%M:%S")
+    doc = {
+        'title' : data.get('title', None),
+        'content' : data.get('content', None),
+        'id' : user["id"], # 오브젝트 아이디랑 값이 다름. 프론트엔드에 보여주기 위한 값. 
+        'email' : db.user["email"], # 유저의 아이디값은 실제로 조회하기 위한 포링키? 포린키?
+        'time' : now
+    }
+    print(doc) # 출력값 {'title': 'title', 'content': 'content', 'id': '6285144f85f93c116b525a47', 'email': 'qqq@', 'time': '21:07:33'}
+    
+    db.article.insert_one(doc)
+    return jsonify({'msg':'success'}) 
+ 
+
+ 
+ # # # # # # # # # # # # # 게시글 # # # # # # # # # # # # # # # # # # # # #
+ 
  
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=5002, debug=True)
+    app.run('127.0.0.1', port=5002, debug=True)
+    # if __name__ == '__main__': app.run( host="192.168.56.20", port=5000)
 
 
 
