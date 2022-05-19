@@ -125,28 +125,29 @@ def get_user_info(user):
 
 
 # # # # # # # # # # # # # 게시글 # # # # # # # # # # # # # # # # # # # # #
-
+## 오브젝트 아이디랑 값이 다름. 프론트엔드에 보여주기 위한 값.  유저의 아이디값은 실제로 조회하기 위한 포링키? 포린키?
 
 @app.route("/article", methods=["POST"])
-@authorize 
+@authorize
 def post_article(user):
     data = json.loads(request.data)
-    # print(data) # 출력값 {'title': 'title', 'content': 'content'}
-    db.user = db.user.find_one({'_id':ObjectId(user.get('id'))})
-    
-    now = datetime.now().strftime("%H:%M:%S")
+    print(data)
+
+    db_user = db.user.find_one({'_id': ObjectId(user.get('id'))})
+
+    now = datetime.now().strftime('%H:%M:%S')
     doc = {
-        'title' : data.get('title', None),
-        'content' : data.get('content', None),
-        'id' : user["id"], # 오브젝트 아이디랑 값이 다름. 프론트엔드에 보여주기 위한 값. 
-        'email' : db.user["email"], # 유저의 아이디값은 실제로 조회하기 위한 포링키? 포린키?
-        'time' : now
+        'title': data.get('title', None),
+        'content': data.get('content', None),
+        'user': user['id'],
+        'user_email': db_user['email'],
+        'time': now,
     }
-    print(doc) # 출력값 {'title': 'title', 'content': 'content', 'id': '6285144f85f93c116b525a47', 'email': 'qqq@', 'time': '21:07:33'}
-    
+    print(doc)
+
     db.article.insert_one(doc)
-    return jsonify({'msg':'success'}) 
- 
+
+    return jsonify({'message': 'success'})
 
  
  # # # # # # # # # # # # # 게시글 # # # # # # # # # # # # # # # # # # # # #
