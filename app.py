@@ -164,7 +164,7 @@ def get_article():
     for article in articles:
         # print(article.get("title")) 
         article["_id"] = str(article["_id"])
-    return jsonify({'msg':'success', 'article':article})
+    return jsonify({'msg':'success', 'articles':articles})
     
     
     
