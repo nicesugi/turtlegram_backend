@@ -167,9 +167,16 @@ def get_article():
     return jsonify({'msg':'success', 'articles':articles})
     
     
+# # # # # # 변수명 url  # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+#  article_id 는 변수 ! 포스트맨에  {{base_url}}/article/213980 이렇게 써보고,
+# 출력값 포스트맨 {"article_id": "213980","message": "success"}으로 app.py 터미널(출력)에도 뜨는지 확인!
     
-    # return jsonify({'message': 'success'})
-
+    
+@app.route("/article/<article_id>", methods=["GET"])
+def get_article_detail(article_id):
+    print(article_id)  
+    article = db.article.find_one({"_id": ObjectId(article_id)})
+    
  
  
  
