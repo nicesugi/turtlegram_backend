@@ -184,6 +184,7 @@ def get_article_detail(article_id):
     return jsonify({'message': 'success', 'article': article})
  
  
+  # # # # # # # # # # #  게시글 수정 PATCH  # # # # # # # # # # # # # # # # # # # # # #  
 # 동일한 url 리소스이기 때문에 같은 주소를 같고 하는 행위가 다르기때문에 메소드만 다름. 이런게 좋은 api설계임
 # 게시글은 누구나 볼수있지만 회원가입안해도 되지만 패치는 회원, 본인이기 때문에 authorize
 @app.route("/article/<article_id>", methods=["PATCH"])
@@ -206,7 +207,18 @@ def patch_article_detail(user, article_id):
     # matched_count 1이면 성공 0이면 실패
     
 
- 
+ # # # # # # # # # # #   게시글 삭제 DELETE   # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+@app.route("/article/<article_id>", methods=["DELETE"])
+@authorize
+def delete_article_detail(user, article_id):
+
+    article = db.article.delete_one(
+        {"_id": ObjectId(article_id), "user": user["id"]})
+
+    if article.deleted_count:
+        return jsonify({"message": "success"})
+    else:
+        return jsonify({"message": "fail"}), 403
  
 if __name__ == '__main__':
     app.run('127.0.0.1', port=5002, debug=True)
