@@ -177,11 +177,20 @@ def get_article():
 def get_article_detail(article_id):
     # print(article_id)  
     article = db.article.find_one({"_id": ObjectId(article_id)})
-    # print(article)
-    article["_id"] = str(article["_id"])
+    comments = list(db.comment.find({"article": article_id}))
+    likes = list(db.like.find({"article":article_id}))
     
-    # return jsonify({'message': 'success', 'article_id': article_id}) #-> print(article_id) 확인 후에 주석처리
-    return jsonify({'message': 'success', 'article': article})
+    
+    if article:
+        article["_id"] = str(article["_id"])
+        article["comment"] = json.loads(dumps(comments))
+        article["likes_count"] = len(likes)
+        return jsonify({'msg':'success','article':article})
+    else:
+        return jsonify({'msg':'fail'}), 404
+
+   
+   
  
  
   # # # # # # # # # # #  게시글 수정 PATCH  # # # # # # # # # # # # # # # # # # # # # #  
