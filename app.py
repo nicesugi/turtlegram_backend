@@ -115,7 +115,7 @@ def get_user_info(user):
     
     print(result)
     
-    return jsonify({'msg':'success', 'email':result['email']})  
+    return jsonify({'msg':'success', 'email':result['email'], 'id':user['id']})  
     # return jsonify({"msg":"success"}) # check 1
     
     # db.user.insert_one({
