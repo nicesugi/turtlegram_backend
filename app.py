@@ -17,10 +17,11 @@ client = MongoClient('localhost', 27017)
 db = client.turtle
 
 # # # # # # # # # # # # # 회원가입 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
+# *args: 리스트형태로 인자가 얼마든지 들어가도됨/ **kwargs: 뭐뭐는 뭐.형태로 키워드가 있고 값이 있고 인식을 할 수 있다는 뜻
+# 들어가야 user말고도 다른걸 넣어도 function 작동
 def authorize(f):
     @wraps(f)
-    def decorated_function():
+    def decorated_function(*args, **kwargs):
         if not 'Authorization' in request.headers:
             abort(401)
         token = request.headers['Authorization']
@@ -28,7 +29,7 @@ def authorize(f):
             user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         except:
             abort(401)
-        return f(user)
+        return f(user, *args, **kwargs)
     return decorated_function
 # decorated_function 붙이면 모든 함수에서 유저를 가져오면 그대로 유저값을 이용할 수 있게 됨.
 
@@ -179,84 +180,34 @@ def get_article_detail(article_id):
     # print(article)
     article["_id"] = str(article["_id"])
     
-    # return jsonify({'message': 'success', 'article_id': article_id}) # print(article_id) 확인 후에 주석처리
+    # return jsonify({'message': 'success', 'article_id': article_id}) #-> print(article_id) 확인 후에 주석처리
     return jsonify({'message': 'success', 'article': article})
  
+ 
+# 동일한 url 리소스이기 때문에 같은 주소를 같고 하는 행위가 다르기때문에 메소드만 다름. 이런게 좋은 api설계임
+# 게시글은 누구나 볼수있지만 회원가입안해도 되지만 패치는 회원, 본인이기 때문에 authorize
+@app.route("/article/<article_id>", methods=["PATCH"])
+@authorize
+def patch_article_detail(user, article_id):
+
+    data = json.loads(request.data)
+    title = data.get("title")
+    content = data.get("content")
+
+    article = db.article.update_one({"_id": ObjectId(article_id), "user": user["id"]}, {
+        "$set": {"title": title, "content": content}})
+
+    if article.matched_count:
+        return jsonify({"message": "success"})
+    else:
+        return jsonify({"message": "fail"}), 403
+    # article_id는 오브젝트고 user_id는 스트링
+    # $set을 통해 바꿔줄 내용 정하기
+    # matched_count 1이면 성공 0이면 실패
+    
+
  
  
 if __name__ == '__main__':
     app.run('127.0.0.1', port=5002, debug=True)
     # if __name__ == '__main__': app.run( host="192.168.56.20", port=5000)
-
-
-
-# @app.route("/login", methods=["POST"])
-# def log_in():
-#     print(request)
-#     data = json.loads(request.data) 
-#     # print(request.form) #결과값--form 'id="sugi"' \-form 'password="1234"'html폼을 작성햇을때 가는형태
-#     # print(request.data) #형태로는 데이터를 꺼내 쓸 수 없음. 겟을 써도 안되고 , 아이디 바로 써도 에러. 더 처리를 해서 밑의 제이슨 씀
-#     print(data) #출력값 {'id': 'sugi', 'password': '0000'}
-#     # print(data.get('id'))   #출력값 sugi
-#     # print(data["password"]) #출력값 0000
-#     # print(data.get('email'))   # 출력값 sugi  > 값이 없으면 key오류떠서. get추천
-#     # print(data["password"]) # 출력값 0000email = data.get('email')   # 출력값 sugi  > 값이 없으면 key오류떠서. get추천
-#     email = data.get('email')
-#     password = data.get('password') # 출력값 0000
-#     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-#     # password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-#     print(password_hash)
-    
-#     result = db.user.find_ond({
-#         "email":email, 
-#         "password":password_hash
-#     })
-#     print(result)
-    
-#     return jsonify({'msg':'success'})
-
-
-
-
-
-
-    
-        # user_id = user.get('id')
-    # user_id = db.user.find_one(repr(user['_id']))
-    # user_id = str(ObjectId(''))
-    
-    
-    
-    #아래는 데이터가 어떻게 나오는지 print해본 것. def sign_up(): 부분 밑에 넣어 확인가능
-    # print(request)
-    # print(request.form) #결과값--form 'id="sugi"' \-form 'password="1234"'html폼을 작성햇을때 가는형태
-    # print(request.data) #형태로는 데이터를 꺼내 쓸 수 없음. 겟을 써도 안되고 , 아이디 바로 써도 에러. 더 처리를 해서 밑의 제이슨 씀
-    # print(data) #출력값 {'id': 'sugi', 'password': '0000'}
-    # print(data.get('id'))   #출력값 sugi
-    # print(data["password"]) #출력값 0000
-    
-    
-        # if email & 'email' >= 1: / ...str이라 타입오류 / db email과 입력값의 교집합의 개수가 1개 이상이라면?
-    # if db.user.find_one(email) / ?? 기현튜터님이 제시했으나 모르겠음..
-    
-    
-    
-    #methods가 포스트라면
-# @app.route("/login")
-# def hello_login():
-#     return jsonify({'msg':'로그인화묜'})
-        # return jsonify('/turtlegram_frontend/login.html') 
-
-# @app.route("/turtlegram_frontend/login.html", methods=["GET"])
-# def hello():
-#     return jsonify({'msg':'success'})
-
-    
-#     if '@' not in email:
-#         return jsonify({'msg':'이메일형식이 아닙니다'}) 
-# # 입력값에 @가 없으면 이메일 재입력 메세지
-#     if db.user.find_one({"email":email}):
-#         return jsonify({'msg':'이미 존재하는 이메일입니다'})    # 입력값이 email db에 있다면, 중복확인 메세지.
-
-#     if space() in email:
-#         return jsonify({'정보를 입력해주세요'})
