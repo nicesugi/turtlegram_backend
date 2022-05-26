@@ -319,7 +319,7 @@ def user_profile(user_id):
  
 
 
-# # # # # # # # # # # #  팔로우  # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # #  팔로우  +  주석처리-언팔 토글방식 # # # # # # # # # # # # # # # # # # # # # # #
     
 @app.route("/user/<user_id>/follow", methods=["POST"])
 @authorize
@@ -328,17 +328,29 @@ def follow(user, user_id): # user_id - 팔로우를 하고자 하는 사람/ use
         {"_id":ObjectId(user["id"])}, {'password':False})
     followed = db.user.find_one(
         {"_id":ObjectId(user_id)}, {'password':False})
-    
+     
     doc = {
         "follower":str(follower['_id']),
         "followed":str(followed['_id'])
     }
+    
+    # result = db.follow.find_one(doc) # 언팔 토글방식
+    # if not result:
+    #     follow = db.follow.insert_one(doc)
+    #     return jsonify({'msg':'success', 'follow':json.loads(dumps(doc))})
+    # else:
+    #     db.follow.delete_one(doc)
+    #     return jsonify({'msg':'deleted', 'follow':json.loads(dumps(doc))})
+    
     
     follow = db.follow.insert_one(doc)
     
     return jsonify({'msg':'success', "follow":json.loads(dumps(doc))})
  # 무언가를 변경된 정보는 json에 담아 돌려주는게 좋음!
 
+ 
+ 
+ 
  
  
  
