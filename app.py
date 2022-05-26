@@ -220,6 +220,42 @@ def delete_article_detail(user, article_id):
     else:
         return jsonify({"message": "fail"}), 403
  
+ 
+ 
+  # # # # # # # # # # #  댓글 작성   # # # # # # # # # # # # # # # # # # # # # # #
+@app.route("/article/<article_id>/comment", methods=["POST"])
+@authorize
+def post_comment(user, article_id):
+    data = json.loads(request.data)
+    print(data)
+
+    db_user = db.users.find_one({'_id': ObjectId(user.get('id'))})
+
+    now = datetime.now().strftime("%H:%M:%S")
+    doc = {
+        'article': article_id,
+        'content': data.get('content', None),
+        'user': user['id'],
+        'user_email': db_user['email'],
+        'time': now
+    }
+    print(doc)
+
+    db.comment.insert_one(doc)
+
+    return jsonify({"message": "success"})
+
+# # # # # # # # # # # #  댓글 보기   # # # # # # # # # # # # # # # # # # # # # # #
+@app.route("/article/<article_id>/comment", methods=["GET"])
+def get_comment(article_id):
+    comments = list(db.comment.find({"article": article_id}))
+    json_comments = json.loads(dumps(comments))
+    return jsonify({"message": "success", "comments": json_comments})
+
+ 
+ 
+ 
+ 
 if __name__ == '__main__':
     app.run('127.0.0.1', port=5002, debug=True)
     # if __name__ == '__main__': app.run( host="192.168.56.20", port=5000)
