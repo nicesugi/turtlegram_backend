@@ -63,7 +63,7 @@ def sign_up():
         # print('가입된 메일')
         return jsonify({'msg':'가입이 된 이메일입니다.'}), 402 
     
-    
+                                                                         # 'follower_count':0, 'followed_count':0 삽입하기.
     db.user.insert_one({'email':email, 'password':password_hash})
     # print(email, password_hash)
     return jsonify({'msg':'가입 성공'})
@@ -298,7 +298,7 @@ def get_like(user, article_id):
  
  
  
-   # # # # # # # # # # # #  마이페이지  # # # # # # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # #  마이페이지  # # # # # # # # # # # # # # # # # # # # # # #
 @app.route("/user/<user_id>", methods=["GET"])
 @authorize
 def user_profile(user_id):
@@ -306,7 +306,41 @@ def user_profile(user_id):
     user_articles = list(db.article.find({"user":user_id}))
     user['articles'] = user_articles
     
+    user_followers = list(db.follow.find(
+        {"followed": user_id})), {'_id':False, 'followed':False}
+    user_following = list(db.follow.find(
+        {"follower":user_id})), {'_id':False, 'follower':False}
+    
+    user['followers'] = user_followers
+    user['following'] = user_following
+    
     return jsonify({'msg':'success',"user":json.loads(dumps(user))})
+ # 오브젝트 팔로워 값은 불필요한듯.> , {'_id':False, 'followed':False}  추가 !> 나를 팔로우 하고 있는 사람의 아이디 값만 보임 !
+ 
+
+
+# # # # # # # # # # # #  팔로우  # # # # # # # # # # # # # # # # # # # # # # #
+    
+@app.route("/user/<user_id>/follow", methods=["POST"])
+@authorize
+def follow(user, user_id): # user_id - 팔로우를 하고자 하는 사람/ user-본인
+    follower = db.user.find_one(
+        {"_id":ObjectId(user["id"])}, {'password':False})
+    followed = db.user.find_one(
+        {"_id":ObjectId(user_id)}, {'password':False})
+    
+    doc = {
+        "follower":str(follower['_id']),
+        "followed":str(followed['_id'])
+    }
+    
+    follow = db.follow.insert_one(doc)
+    
+    return jsonify({'msg':'success', "follow":json.loads(dumps(doc))})
+ # 무언가를 변경된 정보는 json에 담아 돌려주는게 좋음!
+
+ 
+ 
  
  
 if __name__ == '__main__':
