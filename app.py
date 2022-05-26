@@ -7,6 +7,7 @@ from flask import Flask, abort, jsonify, request, Response
 from flask_cors import CORS
 import jwt
 from pymongo import MongoClient
+from bson.json_util import dumps
 
 SECRET_KEY = 'turtle'
 
@@ -295,6 +296,17 @@ def get_like(user, article_id):
     else:
         return jsonify({"message": "fail", "liked": False}) 
  
+ 
+ 
+   # # # # # # # # # # # #  마이페이지  # # # # # # # # # # # # # # # # # # # # # # #
+@app.route("/user/<user_id>", methods=["GET"])
+@authorize
+def user_profile(user_id):
+    user = db.users.find_one({"_id":ObjectId(user_id)}, {'password':False})
+    user_articles = list(db.article.find({"user":user_id}))
+    user['articles'] = user_articles
+    
+    return jsonify({'msg':'success',"user":json.loads(dumps(user))})
  
  
 if __name__ == '__main__':
